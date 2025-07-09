@@ -32,7 +32,7 @@
 ### **Backend (Express.js)**
 
 -    **Node.js** + **Express.js**
--    **MongoDB** (ذخیره‌سازی کاربران)
+-    **SQLite** (ذخیره‌سازی کاربران)
 -    **JWT** (توکن‌های امنیتی)
 -    **Nodemailer** (ارسال ایمیل تأیید)
 -    **Twilio** یا **کد SMS داخلی** (برای OTP موبایل)
@@ -45,7 +45,7 @@
 ### **1. راه‌اندازی بک‌اند (Express.js)**
 
 ```bash
-cd backend
+cd api
 npm install
 npm start
 ```
@@ -55,7 +55,7 @@ npm start
 ### **2. راه‌اندازی فرانت‌اند (React)**
 
 ```bash
-cd frontend
+cd ui
 npm install
 npm run dev
 ```

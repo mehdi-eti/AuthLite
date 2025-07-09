@@ -92,7 +92,6 @@ export const resendEmailVerificationController = async (req: Request, res: Respo
 };
 export const loginWithEmail = async (req: Request, res: Response) => {
 	const { email, password } = req.body;
-	// FIXME userAgent and IP dosnot show in HOPPSCOTCH check in React
 	const userAgent = req.headers["user-agent"];
 	const deviceId = typeof req.headers["x-device-id"] === "string" ? req.headers["x-device-id"] : crypto.randomBytes(16).toString("hex");
 	const ip = Array.isArray(req.headers["x-forwarded-for"])
@@ -174,7 +173,7 @@ export const getSessions = async (req: Request, res: Response) => {
 	apiSuccess({ res, data: sessions, message: "دریافت تمام سشن‌های فعال کاربر" });
 };
 export const deleteSession = async (req: Request, res: Response) => {
-	const userId = (req as any).userId;
+	const userId = (req as AuthenticatedRequestType).user.id;
 	const { sessionId } = req.params;
 
 	const session = await prisma.session.findUnique({ where: { id: sessionId } });
@@ -187,11 +186,11 @@ export const deleteSession = async (req: Request, res: Response) => {
 	await prisma.session.delete({ where: { id: sessionId } });
 	apiSuccess({ message: "Session deleted", res });
 };
-// ----------------------------------------------------------------------------------------------------------
 export const logoutController = async (req: Request, res: Response) => {
 	const refreshToken = req.cookies.refreshToken;
+	const deviceId = typeof req.headers["x-device-id"] === "string" ? req.headers["x-device-id"] : crypto.randomBytes(16).toString("hex");
 
-	if (refreshToken) await prisma.session.deleteMany({ where: { token: refreshToken } });
+	if (refreshToken) await prisma.session.deleteMany({ where: { token: refreshToken, deviceId } });
 
 	const cookieOptions = {
 		httpOnly: true,
@@ -204,8 +203,8 @@ export const logoutController = async (req: Request, res: Response) => {
 		.clearCookie("accessToken", cookieOptions);
 };
 export const meController = async (req: Request, res: Response) => {
-	const user = (req as any).user;
+	const user = (req as AuthenticatedRequestType).user;
 	if (!user) return apiErrors.unauthorized(res);
 
-	apiSuccess({ message: "OK", res, data: user, statusCode: HTTP_STATUS.OK });
+	apiSuccess({ message: "OK", res, data: user });
 };
