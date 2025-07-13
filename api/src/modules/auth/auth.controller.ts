@@ -8,7 +8,7 @@ import config from "@/config/env";
 import { prisma } from "@/config/prisma";
 import type { AuthenticatedRequestType } from "./types";
 import { sendVerificationEmail } from "@/shared/utils/mailer";
-import { generateToken, generateVerificationCode, sign } from "./utils";
+import { generateToken, generateVerificationCode, sign, verify } from "./utils";
 import { apiError, apiErrors, apiSuccess, HTTP_STATUS } from "@/shared/utils/response";
 
 export const registerController = async (req: Request, res: Response) => {
@@ -185,6 +185,58 @@ export const deleteSession = async (req: Request, res: Response) => {
 
 	await prisma.session.delete({ where: { id: sessionId } });
 	apiSuccess({ message: "Session deleted", res });
+};
+export const refreshAccessToken = async (req: Request, res: Response) => {
+	const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+	if (!refreshToken) return apiErrors.unauthorized(res, "Refresh token not found");
+
+	// 1. بررسی اعتبار JWT
+	let payload: any;
+	try {
+		payload = verify(refreshToken, process.env.JWT_SECRET!);
+	} catch {
+		return apiErrors.unauthorized(res, "Invalid refresh token");
+	}
+
+	// 2. بررسی وجود سشن با همین توکن
+	const existingSession = await prisma.session.findFirst({
+		where: { token: refreshToken, userId: payload.userId },
+	});
+
+	// 🚨 Reuse detected
+	if (!existingSession) {
+		// 🔥 Invalidate all sessions for that user
+		await prisma.session.deleteMany({ where: { userId: payload.userId } });
+
+		return apiErrors.forbidden(res, "Token reuse detected. All sessions have been revoked.");
+	}
+
+	// 4. ساخت refresh جدید
+	const newRefreshToken = await sign(payload, process.env.JWT_SECRET!, { expiresIn: config.REFRESH_EXPIRES });
+	const newAccessToken = await sign(payload, process.env.JWT_SECRET!, { expiresIn: config.ACCESS_EXPIRES });
+
+	await prisma.session.update({
+		where: { id: existingSession.id },
+		data: {
+			token: newRefreshToken,
+			userId: payload.userId,
+			expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+		},
+	});
+
+	res.cookie("accessToken", newAccessToken, {
+		httpOnly: true,
+		sameSite: "lax",
+		maxAge: 15 * 60 * 1000,
+		secure: process.env.NODE_ENV === "production",
+	}).cookie("refreshToken", newRefreshToken, {
+		httpOnly: true,
+		sameSite: "lax",
+		maxAge: 7 * 24 * 60 * 60 * 1000,
+		secure: process.env.NODE_ENV === "production",
+	});
+
+	apiSuccess({ message: "Access token refreshed", res, data: { newAccessToken, newRefreshToken } });
 };
 export const logoutController = async (req: Request, res: Response) => {
 	const refreshToken = req.cookies.refreshToken;

@@ -13,6 +13,7 @@ import {
 	getSessions,
 	deleteSession,
 	loginWithEmail,
+	refreshAccessToken,
 } from "./auth.controller";
 
 const router = express.Router();
