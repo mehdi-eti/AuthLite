@@ -15,11 +15,9 @@ import type { ErrorResponseParams } from "./types";
 import { authPaths, AuthLayout, PasswordInput, loginWithEmailSchema, apiRoutes } from ".";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useAuth } from "./hooks";
 
 function SignInForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
 	const navigate = useNavigate();
-	const { setUser } = useAuth();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const form = useForm<z.infer<typeof loginWithEmailSchema>>({
