@@ -1,31 +1,55 @@
 /** @format */
 
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, type HTMLAttributes } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { cn } from "@/lib/utils";
+import { AFTER_LOGIN } from "@/config";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { paths, AuthLayout, PasswordInput, loginWithEmailSchema } from ".";
+import type { ErrorResponseParams } from "./types";
+import { authPaths, AuthLayout, PasswordInput, loginWithEmailSchema, apiRoutes } from ".";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useAuth } from "./hooks";
 
 function SignInForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
+	const navigate = useNavigate();
+	const { setUser } = useAuth();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const form = useForm<z.infer<typeof loginWithEmailSchema>>({
 		resolver: zodResolver(loginWithEmailSchema),
-		defaultValues: { email: "", password: "" },
+		defaultValues: { email: "etezadi_mehdi@yahoo.com", password: "Mehdi123456**" },
 	});
 
-	function onSubmit(data: z.infer<typeof loginWithEmailSchema>) {
+	async function onSubmit(data: z.infer<typeof loginWithEmailSchema>) {
 		setIsLoading(true);
-		console.log(data);
+		const url = apiRoutes.loginWithWmail;
+		const options = {
+			method: "POST",
+			headers: { "content-type": "application/json", "User-Agent": navigator.userAgent },
+			body: JSON.stringify(data),
+		};
 
-		setTimeout(() => setIsLoading(false), 3000);
+		const response = await fetch(url, { ...options });
+		if (!response.ok) {
+			setIsLoading(false);
+			const data: ErrorResponseParams = await response.json();
+			if (data.validationErrors) {
+				data.validationErrors.forEach((err) => {
+					form.setError(err.field as "email" | "password", { type: "manual", message: err.message });
+				});
+			} else toast.error(data.message);
+			return;
+		}
+
+		setIsLoading(false);
+		return navigate(AFTER_LOGIN);
 	}
 
 	return (
@@ -80,7 +104,7 @@ function SignInForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
 									</FormControl>
 									<FormMessage />
 									<Link
-										to={paths.ForgotPassword}
+										to={authPaths.ForgotPassword}
 										className='text-muted-foreground absolute -top-0.5 right-0 text-sm font-medium hover:opacity-75'>
 										Forgot password?
 									</Link>
@@ -93,7 +117,7 @@ function SignInForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
 					</div>
 					<div className='text-center text-sm'>
 						Don&apos;t have an account?{" "}
-						<Link to={paths.SignUp} className='underline underline-offset-4'>
+						<Link to={authPaths.SignUp} className='underline underline-offset-4'>
 							Sign up
 						</Link>
 					</div>

@@ -26,7 +26,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 		const payload = await verify(token, process.env.JWT_SECRET!);
 		const session = await prisma.session.findFirst({ where: { userId: String(payload.userId), token } });
 
-		if (!session) {
+		if (!session || session.expiresAt < new Date()) {
 			apiErrors.unauthorized(res, "Session expired or invalid");
 			return;
 		}
@@ -50,6 +50,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 			apiErrors.forbidden(res);
 			return;
 		}
+		if (!user.isEmailVerified) {
+			apiErrors.forbidden(res, "Please verify your email first");
+			return;
+		}
 
 		req.user = user;
 		next();
@@ -61,6 +65,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 				statusCode: HTTP_STATUS.UNAUTHORIZED,
 				errorCode: "TOKEN_EXPIRED",
 			});
+			return;
 		}
 
 		if (error instanceof jwt.JsonWebTokenError) {
@@ -70,6 +75,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 				statusCode: HTTP_STATUS.UNAUTHORIZED,
 				errorCode: "INVALID_TOKEN",
 			});
+			return;
 		}
 
 		apiError({
@@ -78,5 +84,6 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 			statusCode: HTTP_STATUS.UNAUTHORIZED,
 			errorCode: "AUTH_FAILED",
 		});
+		return;
 	}
 };

@@ -1,32 +1,52 @@
 /** @format */
 
 import { z } from "zod";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
-import { useState, type HTMLAttributes } from "react";
+import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, type HTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
-import { OTPSchema, AuthLayout } from ".";
 import { Button } from "@/components/ui/button";
+import type { ErrorResponseParams } from "./types";
+import { OTPSchema, AuthLayout, apiRoutes, authPaths } from ".";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function OtpForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
+	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const form = useForm<z.infer<typeof OTPSchema>>({
 		resolver: zodResolver(OTPSchema),
-		defaultValues: { otp: "" },
+		defaultValues: { code: "" },
 	});
 
-	function onSubmit(data: z.infer<typeof OTPSchema>) {
+	async function onSubmit(data: z.infer<typeof OTPSchema>) {
 		setIsLoading(true);
-		console.log(data);
+		const url = apiRoutes.verifyEmail;
+		const options = {
+			method: "POST",
+			headers: { "content-type": "application/json", "User-Agent": navigator.userAgent },
+			body: JSON.stringify(data),
+		};
 
-		setTimeout(() => {
+		const response = await fetch(url, options);
+		if (!response.ok) {
 			setIsLoading(false);
-		}, 1000);
+			const data: ErrorResponseParams = await response.json();
+			if (data.validationErrors) {
+				data.validationErrors?.forEach((err) => {
+					form.setError(err.field as "code", { type: "manual", message: err.message });
+				});
+			} else toast.error(data.message);
+			return;
+		}
+
+		setIsLoading(false);
+		return navigate(authPaths.SignIn);
 	}
 
 	return (
@@ -34,7 +54,7 @@ function OtpForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
 			<form onSubmit={form.handleSubmit(onSubmit)} className={cn("grid gap-2", className)} {...props}>
 				<FormField
 					control={form.control}
-					name='otp'
+					name='code'
 					render={({ field }) => (
 						<FormItem>
 							<FormControl>

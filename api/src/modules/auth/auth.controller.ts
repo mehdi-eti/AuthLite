@@ -100,21 +100,21 @@ export const loginWithEmail = async (req: Request, res: Response) => {
 
 	const user = await prisma.user.findUnique({ where: { email } });
 	if (!user || !user.passwordHash) {
-		apiErrors.notFound(res);
+		apiErrors.notFound(res, "User notFound");
 		return;
 	}
 	if (!user.isEmailVerified) {
-		apiError({ message: "ابتدا ایمیل خود را تأیید کنید", res });
+		apiError({ message: "Verify your email", res });
 		return;
 	}
 	if (!user.isActive) {
-		apiErrors.forbidden(res, "حساب شما غیرفعال شده است");
+		apiErrors.forbidden(res, "Your account is deActivated");
 		return;
 	}
 
 	const isMatch = await bcrypt.compare(password, user.passwordHash);
 	if (!isMatch) {
-		apiError({ message: "ایمیل یا رمز عبور اشتباه است", res });
+		apiError({ message: "Incorrect email or password.", res });
 		return;
 	}
 
@@ -159,7 +159,25 @@ export const loginWithEmail = async (req: Request, res: Response) => {
 		secure: process.env.NODE_ENV === "production",
 	});
 
-	apiSuccess({ message: "ورود با موفقیت انجام شد", res, data: { accessToken, deviceId } });
+	apiSuccess({
+		message: "ورود با موفقیت انجام شد",
+		res,
+		data: {
+			accessToken,
+			deviceId,
+			user: {
+				id: user.id,
+				email: user.email,
+				username: user.username,
+				phone: user.phone,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				role: user.role,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt,
+			},
+		},
+	});
 };
 export const getSessions = async (req: Request, res: Response) => {
 	const userId = (req as AuthenticatedRequestType).user.id;
@@ -256,7 +274,10 @@ export const logoutController = async (req: Request, res: Response) => {
 };
 export const meController = async (req: Request, res: Response) => {
 	const user = (req as AuthenticatedRequestType).user;
-	if (!user) return apiErrors.unauthorized(res);
+	if (!user) {
+		apiErrors.unauthorized(res);
+		return;
+	}
 
 	apiSuccess({ message: "OK", res, data: user });
 };

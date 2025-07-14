@@ -17,13 +17,32 @@ const authenticate = async (req, res, next) => {
     }
     try {
         const payload = await (0, utils_1.verify)(token, process.env.JWT_SECRET);
-        const user = await prisma_1.prisma.user.findUnique({ where: { id: String(payload.userId) } });
-        if (!user) {
-            response_1.apiErrors.notFound(res);
+        const session = await prisma_1.prisma.session.findFirst({ where: { userId: String(payload.userId), token } });
+        if (!session || session.expiresAt < new Date()) {
+            response_1.apiErrors.unauthorized(res, "Session expired or invalid");
             return;
         }
-        if (!user.isActive) {
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id: String(payload.userId) },
+            select: {
+                id: true,
+                role: true,
+                email: true,
+                phone: true,
+                username: true,
+                isActive: true,
+                lastName: true,
+                firstName: true,
+                createdAt: true,
+                isEmailVerified: true,
+            },
+        });
+        if (!user || !user.isActive) {
             response_1.apiErrors.forbidden(res);
+            return;
+        }
+        if (!user.isEmailVerified) {
+            response_1.apiErrors.forbidden(res, "Please verify your email first");
             return;
         }
         req.user = user;
@@ -37,6 +56,7 @@ const authenticate = async (req, res, next) => {
                 statusCode: response_1.HTTP_STATUS.UNAUTHORIZED,
                 errorCode: "TOKEN_EXPIRED",
             });
+            return;
         }
         if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
             (0, response_1.apiError)({
@@ -45,6 +65,7 @@ const authenticate = async (req, res, next) => {
                 statusCode: response_1.HTTP_STATUS.UNAUTHORIZED,
                 errorCode: "INVALID_TOKEN",
             });
+            return;
         }
         (0, response_1.apiError)({
             res,
@@ -52,6 +73,7 @@ const authenticate = async (req, res, next) => {
             statusCode: response_1.HTTP_STATUS.UNAUTHORIZED,
             errorCode: "AUTH_FAILED",
         });
+        return;
     }
 };
 exports.authenticate = authenticate;

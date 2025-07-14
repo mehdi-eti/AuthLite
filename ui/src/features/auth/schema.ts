@@ -50,5 +50,5 @@ export const loginWithEmailSchema = z.object({
 });
 
 export const OTPSchema = z.object({
-	otp: z.string().min(1, { message: "Please enter your otp code." }),
+	code: z.string().min(1, { message: "Please enter your otp code." }),
 });

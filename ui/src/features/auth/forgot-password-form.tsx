@@ -3,13 +3,13 @@
 import { z } from "zod";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, type HTMLAttributes } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { paths, AuthLayout, forgotPasswordSchema } from ".";
+import { authPaths, AuthLayout, forgotPasswordSchema } from ".";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -52,7 +52,7 @@ function SignInForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
 					</div>
 					<div className='text-center text-sm'>
 						Don&apos;t have an account?{" "}
-						<Link to={paths.SignUp} className='underline underline-offset-4'>
+						<Link to={authPaths.SignUp} className='underline underline-offset-4'>
 							Sign up
 						</Link>
 					</div>

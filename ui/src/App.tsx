@@ -2,14 +2,23 @@
 
 import { Routes, Route } from "react-router-dom";
 
-import { routes } from "@/features/auth";
+import { authRoutes } from "@/features/auth";
+import { ProtectedRoute } from "./features/auth/components/protected-route";
 
 function App() {
 	return (
 		<Routes>
-			{routes.map(({ Element, path }, i) => (
+			{authRoutes.map(({ Element, path }, i) => (
 				<Route key={i} element={<Element />} path={path} />
 			))}
+			<Route
+				path=''
+				element={
+					<ProtectedRoute>
+						<h1>HI</h1>
+					</ProtectedRoute>
+				}
+			/>
 		</Routes>
 	);
 }

@@ -14,6 +14,7 @@ import {
 	deleteSession,
 	loginWithEmail,
 	refreshAccessToken,
+	meController,
 } from "./auth.controller";
 
 const router = express.Router();
@@ -24,5 +25,6 @@ router.post("/resend-email-verification", resendVerificationRateLimiter, validat
 router.post("/login-with-email", validate(loginWithEmailSchema), loginWithEmail);
 router.get("/sessions", authenticate, getSessions);
 router.delete("/sessions/:sessionId", authenticate, deleteSession);
+router.get("/me", authenticate, meController);
 
 export default router;

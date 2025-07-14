@@ -8,13 +8,16 @@ import "./index.css";
 
 import App from "./App";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "./features/auth/context";
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 root.render(
 	<React.StrictMode>
-		<BrowserRouter>
-			<App />
-			<Toaster />
-		</BrowserRouter>
+		<AuthProvider>
+			<BrowserRouter>
+				<App />
+				<Toaster />
+			</BrowserRouter>
+		</AuthProvider>
 	</React.StrictMode>
 );

@@ -1,41 +1,62 @@
 /** @format */
 
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, type HTMLAttributes } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { paths, AuthLayout, PasswordInput, registerSchema } from ".";
+import type { ErrorResponseParams } from "./types";
+import { authPaths, AuthLayout, PasswordInput, registerSchema, apiRoutes } from ".";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+type ErrorPropsFields = "email" | "confirmPassword" | "password" | "firstName" | "lastName" | "phone" | "username";
+
 export function SignUpForm({ className, ...props }: HTMLAttributes<HTMLFormElement>) {
+	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const form = useForm<z.infer<typeof registerSchema>>({
 		resolver: zodResolver(registerSchema),
 		defaultValues: {
-			email: "",
-			password: "",
-			confirmPassword: "",
-			firstName: "",
-			lastName: "",
-			phone: "",
-			username: "",
+			email: "etezadi_mehdi@yahoo.com",
+			confirmPassword: "Mehdi123456**",
+			password: "Mehdi123456**",
+			firstName: "Mehdi",
+			lastName: "Eti",
+			phone: "09359971938",
+			username: "admin",
 		},
 	});
 
-	function onSubmit(data: z.infer<typeof registerSchema>) {
+	async function onSubmit(data: z.infer<typeof registerSchema>) {
 		setIsLoading(true);
-		console.log(data);
+		const url = apiRoutes.register;
+		const options = {
+			method: "POST",
+			headers: { "content-type": "application/json", "User-Agent": navigator.userAgent },
+			body: JSON.stringify(data),
+		};
 
-		setTimeout(() => {
+		const response = await fetch(url, options);
+		if (!response.ok) {
 			setIsLoading(false);
-		}, 3000);
+			const data: ErrorResponseParams = await response.json();
+			if (data.validationErrors) {
+				data.validationErrors?.forEach((err) => {
+					form.setError(err.field as ErrorPropsFields, { type: "manual", message: err.message });
+				});
+			} else toast.error(data.message);
+			return;
+		}
+
+		navigate(authPaths.OTP);
+		return setIsLoading(false);
 	}
 
 	return (
@@ -142,7 +163,7 @@ export function SignUpForm({ className, ...props }: HTMLAttributes<HTMLFormEleme
 					</div>
 					<div className='text-center text-sm'>
 						Already have an account?{" "}
-						<Link to={paths.SignIn} className='underline underline-offset-4'>
+						<Link to={authPaths.SignIn} className='underline underline-offset-4'>
 							Sign in
 						</Link>
 					</div>
